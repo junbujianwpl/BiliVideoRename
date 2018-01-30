@@ -42,10 +42,11 @@ def init():
 def get_title_part_name(fname):
     with open(fname, encoding="utf8") as f:
         exclude_char = ['\\', '/', '*', '?', '<', '>', ':', '|', '"']
+        fill_str = " "
         my_dict = json.load(f)
-        title = functools.reduce(lambda s, c: str(s).replace(str(c), ""), exclude_char,
+        title = functools.reduce(lambda s, c: str(s).replace(str(c), fill_str), exclude_char,
                                  str(my_dict.get(title_key, None)))
-        part = functools.reduce(lambda s, c: str(s).replace(str(c), ""), exclude_char,
+        part = functools.reduce(lambda s, c: str(s).replace(str(c), fill_str), exclude_char,
                                 str(my_dict.get("page_data").get(part_key, None)))
         return title, part
 
@@ -56,28 +57,35 @@ def analyze_root(dir):
     title = ""
     part = ""
     for dirpath, dirs, files in os.walk(dir):
-        base_name = os.path.abspath(dirpath)
+        dir_abs_name = os.path.abspath(dirpath)
         for f in files:
             if f == index_file_name:
-                title, part = get_title_part_name(os.path.join(base_name, f))
+                title, part = get_title_part_name(os.path.join(dir_abs_name, f))
             # rename *.blv to dir_basename.mp4
             file_name, ext_name = os.path.splitext(f)
             if ext_name == src_suffix:
-                os.rename(os.path.join(base_name, f),
-                          os.path.join(base_name, "{}_{}{}".format(dirpath, file_name, dst_suffix)))
+                # keep file in old dir code
+                # os.rename(os.path.join(dir_abs_name, f),
+                #           os.path.join(dir_abs_name,
+                #                        "{}_{}{}".format(os.path.basename(dir_abs_name), file_name, dst_suffix)))
+                # mv file upward twice
+                twice_up_dir = os.path.join(dir_abs_name, os.path.pardir, os.path.pardir)
+                os.rename(os.path.join(dir_abs_name, f), os.path.join(twice_up_dir,
+                                                                      "{}_{}{}".format(os.path.basename(dir_abs_name),
+                                                                                       file_name, dst_suffix)))
 
         dir_added = []
         if title and part:  # found the index file
             i = 0
             for d in dirs:  # itertools.product cross each element, zip good
-                dst_dir_name = os.path.join(base_name, "{}{}{}".format(title, connect_sep, i))
+                dst_dir_name = os.path.join(dir_abs_name, "{}{}{}".format(title, connect_sep, i))
                 if dst_dir_name == d:
                     continue
                 while os.path.exists(dst_dir_name):
                     i += 1
-                    dst_dir_name = os.path.join(base_name, "{}{}{}".format(title, connect_sep, i))
+                    dst_dir_name = os.path.join(dir_abs_name, "{}{}{}".format(title, connect_sep, i))
 
-                os.rename(os.path.join(base_name, d), dst_dir_name)
+                os.rename(os.path.join(dir_abs_name, d), dst_dir_name)
                 dir_added.append(dst_dir_name)
                 i += 1
                 # os.rename(os.path.join(base_name, d), os.path.join(base_name, "a"))
