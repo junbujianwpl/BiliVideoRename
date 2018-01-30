@@ -38,6 +38,7 @@ def get_title_part_name(fname):
         return title, part
 
 
+@dec_deal_exception(lambda: my_logger.debug(traceback.format_exc()))
 def analyze_root(dir):
     """
 
@@ -66,11 +67,11 @@ def analyze_root(dir):
                 primary_index = os.path.basename(os.path.join(dir_abs_name, os.path.pardir))
                 i = 0
                 new_name = os.path.join(twice_up_dir,
-                                        "{}_{}_{}_{}{}".format(tag_name, file_name, primary_index, i, dst_suffix))
+                                        "{}_{}_{}_{}{}".format(tag_name, primary_index, file_name, i, dst_suffix))
                 while os.path.exists(new_name):
                     i += 1
                     new_name = os.path.join(twice_up_dir,
-                                            "{}_{}_{}_{}{}".format(tag_name, file_name, primary_index, i, dst_suffix))
+                                            "{}_{}_{}_{}{}".format(tag_name, primary_index, file_name, i, dst_suffix))
 
                 os.rename(os.path.join(dir_abs_name, f), new_name)
 
