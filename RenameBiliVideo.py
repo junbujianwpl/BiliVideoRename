@@ -11,7 +11,6 @@ from component.Logger import *
 from component.Utilities import *
 import os
 import sys
-import itertools
 import json
 import functools
 
@@ -23,19 +22,7 @@ title_key = "title"
 part_key = "part"
 dst_suffix = ".mp4"
 src_suffix = ".blv"
-
 connect_sep = "_"
-
-primary_dir_info = {}
-
-
-class DirInfo:
-    pass
-
-
-@dec_deal_exception(lambda: my_logger.debug(traceback.format_exc()))
-def init():
-    pass
 
 
 @dec_deal_exception(lambda: my_logger.debug(traceback.format_exc()))
@@ -52,6 +39,11 @@ def get_title_part_name(fname):
 
 
 def analyze_root(dir):
+    """
+
+    :param dir: must be the exact root dir of a batch of videos
+    :return:
+    """
     sub_dirs = os.listdir(dir)
     print_time(sub_dirs)
     title = ""
@@ -70,34 +62,49 @@ def analyze_root(dir):
                 #                        "{}_{}{}".format(os.path.basename(dir_abs_name), file_name, dst_suffix)))
                 # mv file upward twice
                 twice_up_dir = os.path.join(dir_abs_name, os.path.pardir, os.path.pardir)
-                os.rename(os.path.join(dir_abs_name, f), os.path.join(twice_up_dir,
-                                                                      "{}_{}{}".format(os.path.basename(dir_abs_name),
-                                                                                       file_name, dst_suffix)))
+                tag_name = os.path.basename(dir_abs_name)
+                primary_index = os.path.basename(os.path.join(dir_abs_name, os.path.pardir))
+                i = 0
+                new_name = os.path.join(twice_up_dir,
+                                        "{}_{}_{}_{}{}".format(tag_name, file_name, primary_index, i, dst_suffix))
+                while os.path.exists(new_name):
+                    i += 1
+                    new_name = os.path.join(twice_up_dir,
+                                            "{}_{}_{}_{}{}".format(tag_name, file_name, primary_index, i, dst_suffix))
+
+                os.rename(os.path.join(dir_abs_name, f), new_name)
 
         dir_added = []
         if title and part:  # found the index file
             i = 0
             for d in dirs:  # itertools.product cross each element, zip good
-                dst_dir_name = os.path.join(dir_abs_name, "{}{}{}".format(title, connect_sep, i))
+                primary_index = os.path.basename(dir_abs_name)
+                dst_dir_name = os.path.join(dir_abs_name, "{}{}{}_{}".format(title, connect_sep, primary_index, i))
                 if dst_dir_name == d:
                     continue
                 while os.path.exists(dst_dir_name):
                     i += 1
-                    dst_dir_name = os.path.join(dir_abs_name, "{}{}{}".format(title, connect_sep, i))
+                    dst_dir_name = os.path.join(dir_abs_name, "{}{}{}_{}".format(title, connect_sep, primary_index, i))
 
                 os.rename(os.path.join(dir_abs_name, d), dst_dir_name)
                 dir_added.append(dst_dir_name)
                 i += 1
-                # os.rename(os.path.join(base_name, d), os.path.join(base_name, "a"))
         dirs += dir_added
+    if title:
+        new_name = os.path.join(os.path.join(dir, os.path.pardir), title)
+        while os.path.exists(new_name):
+            new_name += "_"
+        os.rename(dir, new_name)
 
 
 if __name__ == '__main__':
-    root_dir = r"I:/Bilibili/Nox_share/Other/10610680"
+    root_dir = r"I:/Bilibili/Nox_share/Other"
     if len(sys.argv) > 1:
         root_dir = sys.argv[1]
 
-    dir_info = path_to_dict(root_dir)
-    my_logger.debug(dir_info)
-    analyze_root(root_dir)
-    init()
+    for dir in os.listdir(root_dir):
+        sub_dir = os.path.join(root_dir, dir)
+        if os.path.isdir(sub_dir):
+            dir_info = path_to_dict(sub_dir)
+            my_logger.debug(dir_info)
+            analyze_root(sub_dir)
